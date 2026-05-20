@@ -1,6 +1,19 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:base"
+  ],
+  "html": {
+    "enabled": true
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["\\.html?$"],
+      "matchStrings": [
+        "https?:\\/\\/cdn\\.jsdelivr\\.net\\/npm\\/(?<depName>(?:@[\\w.~-]+\\/)?[\\w.~-]+)@(?<currentValue>[\\w.><=~^*-]+)"
+      ],
+      "datasourceTemplate": "npm"
+    }
   ]
 }
