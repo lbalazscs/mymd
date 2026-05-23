@@ -344,7 +344,7 @@
             background: transparent;
             padding: 0;
             white-space: pre-wrap; /* Wrap long lines in source view */
-            word-break: break-all;
+            word-break: break-word;
         }
 
         /* --- KaTeX Math Styling (Dark Theme) --- */
@@ -504,6 +504,63 @@
                 }
             });
 
+            // Undo Toast helper
+            function showUndoToast(tabName, onUndo, onCleanup) {
+                let isUndone = false; // Track if the user clicked undo
+                
+                const toastNode = document.createElement("div");
+                toastNode.style.display = "flex";
+                toastNode.style.justifyContent = "space-between";
+                toastNode.style.alignItems = "center";
+                toastNode.style.width = "100%";
+
+                const textSpan = document.createElement("span");
+                textSpan.textContent = `Closed "${tabName}"`;
+                
+                const undoBtn = document.createElement("button");
+                undoBtn.textContent = "Undo";
+                undoBtn.style.marginLeft = "15px";
+                undoBtn.style.padding = "2px 8px";
+                undoBtn.style.background = "green";
+                undoBtn.style.color = "white";
+                undoBtn.style.border = "none";
+                undoBtn.style.borderRadius = "3px";
+                undoBtn.style.cursor = "pointer";
+                undoBtn.style.fontWeight = "bold";
+
+                toastNode.appendChild(textSpan);
+                toastNode.appendChild(undoBtn);
+
+                const toast = Toastify({
+                    node: toastNode,
+                    duration: 5000,
+                    gravity: "bottom",
+                    position: "right",
+                    style: {
+                        background: "#333",
+                        color: "#fff",
+                        borderRadius: "4px",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+                        minWidth: "250px"
+                    },
+                    callback: function() {
+                        // Fires when the toast naturally times out and disappears.
+                        // If the user didn't click undo, execute the permanent memory cleanup.
+                        if (!isUndone && onCleanup) {
+                            onCleanup();
+                        }
+                    }
+                });
+
+                undoBtn.addEventListener('click', () => {
+                    isUndone = true; // Mark as undone so cleanup doesn't delete it
+                    toast.hideToast();
+                    if (onUndo) onUndo();
+                });
+
+                toast.showToast();
+            }
+
             // Helper for universal toast notifications
             function showToast(message, isError = true) {
                 if (typeof Toastify === 'undefined') {
@@ -638,10 +695,6 @@
                         pedantic: false,
                         gfm: true,
                         breaks: false,
-                        sanitize: false,
-                        smartLists: true,
-                        smartypants: false,
-                        xhtml: false,
                         highlight: function (code, lang) {
                             const language = hljs.getLanguage(lang) ? lang : 'plaintext';
                             return hljs.highlight(code, { language, ignoreIllegals: true }).value;
@@ -728,15 +781,19 @@
                 const tabId = tabToClose.dataset.tabId;
                 const contentPaneToClose = document.getElementById(tabId);
                 
-                const prevSibling = tabToClose.previousElementSibling;
-                const nextSibling = tabToClose.nextElementSibling;
+                // Capture state for Undo
+                let nextSibling = tabToClose.nextElementSibling;
+                const tabName = tabToClose.querySelector('span').textContent;
+                const isEmpty = contentPaneToClose && contentPaneToClose.querySelector('.placeholder') !== null;
 
+                // Detach elements from DOM
                 tabToClose.remove();
                 if (contentPaneToClose) {
                     contentPaneToClose.remove();
                 }
 
                 if (wasActive) {
+                    const prevSibling = tabToClose.previousElementSibling;
                     if (prevSibling && prevSibling.classList.contains('tab')) {
                         switchTab(prevSibling);
                     } else if (nextSibling && nextSibling.classList.contains('tab')) {
@@ -746,6 +803,46 @@
                 
                 if (!bypassNewTabCheck && tabList.querySelectorAll('.tab').length === 0) {
                     createNewTab();
+                }
+
+                // --- UNDO LOGIC ---
+                if (!isEmpty) {
+                    showUndoToast(tabName, () => {
+                        // --- ON UNDO CALLBACK ---
+                        
+                        // 1. Re-insert the tab safely. 
+                        if (nextSibling && nextSibling.parentNode === tabList) {
+                            tabList.insertBefore(tabToClose, nextSibling);
+                        } else {
+                            tabList.insertBefore(tabToClose, newTabBtn);
+                        }
+
+                        // 2. Re-insert the content pane
+                        if (contentPaneToClose) {
+                            contentContainer.appendChild(contentPaneToClose);
+                        }
+
+                        // 3. Make the restored tab active
+                        switchTab(tabToClose);
+
+                        // 4. Cleanup: Find and delete any entirely empty auto-created tabs
+                        // so they don't clutter the UI when restoring multiple files.
+                        document.querySelectorAll('.content-pane').forEach(pane => {
+                            if (pane.id !== tabId && pane.querySelector('.placeholder')) {
+                                const emptyTabId = pane.id;
+                                const emptyTab = document.querySelector(`.tab[data-tab-id="${emptyTabId}"]`);
+                                if (emptyTab) emptyTab.remove();
+                                pane.remove();
+                            }
+                        });
+                        
+                    }, () => {
+                        // on cleanup callback (after 5 seconds): detaches the nodes
+                        // from the JS closure, guaranteeing they get GCd.
+                        tabToClose = null;
+                        contentPaneToClose = null;
+                        nextSibling = null;
+                    });
                 }
             }
 
