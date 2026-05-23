@@ -3,6 +3,16 @@
   "extends": [
     "config:recommended"
   ],
+  "schedule": [
+    "on the first day of the month"
+  ],
+  "packageRules": [
+    {
+      "matchPackagePatterns": ["*"],
+      "groupName": "all dependencies",
+      "groupSlug": "all-deps"
+    }
+  ],
   "html": {
     "enabled": true
   },
