@@ -1,3 +1,6 @@
+const isMac = navigator.userAgent.toLowerCase().includes('mac');
+const pasteShortcut = isMac ? 'Cmd+V' : 'Ctrl+V';
+        
 document.addEventListener('DOMContentLoaded', () => {
     const appContainer = document.querySelector('.app-container'); 
     const tabList = document.getElementById('tab-list');
@@ -94,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         undoBtn.addEventListener('click', () => {
+            if (isUndone) return; // The user double-clicked the button
             isUndone = true; // Mark as undone so cleanup doesn't delete it
             toast.hideToast();
             if (onUndo) onUndo();
@@ -134,25 +138,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function setSourceMode(showSource) {
+        const activeContentPane = document.querySelector('.content-pane.active');
+        if (!activeContentPane) return;
+
         if (showSource) {
-            appContainer.classList.add('show-source');
+            activeContentPane.classList.add('show-source');
             menuToggleSourceText.textContent = 'Show Formatted';
         } else {
-            appContainer.classList.remove('show-source');
+            activeContentPane.classList.remove('show-source');
             menuToggleSourceText.textContent = 'Show Source';
         }
     }
-
+    
     menuToggleSource.addEventListener('click', (e) => {
         e.preventDefault();
         toggleSource();
     });
     
     function toggleSource() {
-        const isSource = appContainer.classList.contains('show-source');
+        const activeContentPane = document.querySelector('.content-pane.active');
+        if (!activeContentPane) return;
+        const isSource = activeContentPane.classList.contains('show-source');
         setSourceMode(!isSource);
     }
-
+    
     function closeOtherTabs() {
         const activeTab = document.querySelector('.tab.active');
         if (!activeTab) return;
@@ -294,11 +303,11 @@ document.addEventListener('DOMContentLoaded', () => {
         contentPane.id = tabId;
         contentPane.innerHTML = `
             <div class="placeholder">
-                <p>Paste Markdown (Ctrl+V)<br>or drop a .md file anywhere.</p>
+                <p>Paste Markdown (${pasteShortcut})<br>or drop .md files anywhere.</p>
             </div>
         `;
         contentContainer.appendChild(contentPane);
-
+        
         tab.addEventListener('click', (e) => {
             if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
                 switchTab(tab);
@@ -324,9 +333,13 @@ document.addEventListener('DOMContentLoaded', () => {
         tabToActivate.classList.add('active');
         if (contentPaneToActivate) {
             contentPaneToActivate.classList.add('active');
+            
+            // Sync source mode toggle text to match the newly activated tab's state
+            const isSource = contentPaneToActivate.classList.contains('show-source');
+            menuToggleSourceText.textContent = isSource ? 'Show Formatted' : 'Show Source';
         }
     }
-
+    
     function closeTab(tabToClose) {
         closeTabs([tabToClose]);
     }
@@ -493,7 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
         input.value = originalText;
         input.className = 'tab-name-input';
         
-        input.style.width = `${labelElement.offsetWidth}px`;
+        input.style.minWidth = `${labelElement.offsetWidth}px`;
 
         tab.replaceChild(input, labelElement);
         input.focus();
@@ -550,6 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).catch(err => {
                     console.error('Failed to copy text: ', err);
                     button.textContent = 'Error';
+                    setTimeout(() => { button.innerHTML = copyIcon; }, 2000);
                 });
             });
         });
@@ -567,9 +581,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderContent(markdown, filename = null) {
         if (!markdown) return;
 
-        // Force exit Source mode on paste/drop
-        setSourceMode(false);
-
         let activeContentPane = document.querySelector('.content-pane.active');
         let activeTab = document.querySelector('.tab.active');
 
@@ -586,6 +597,9 @@ document.addEventListener('DOMContentLoaded', () => {
             activeContentPane = document.querySelector('.content-pane.active');
             activeTab = document.querySelector('.tab.active');
         }
+
+        // Force exit Source mode specifically on this tab on paste/drop
+        setSourceMode(false);
 
         const renderedHtml = marked.parse(markdown);
         const sourceHtml = `<pre><code class="language-markdown">${escapeHtml(markdown)}</code></pre>`;
@@ -639,10 +653,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const mdFiles = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.md'));
         
         if (mdFiles.length === 0) {
-            showToast('Please drop at least one .md file.', true);
+            if (files.length === 1) {
+                showToast(`"${files[0].name}" is not an .md file.`, true);
+            } else {
+                showToast('Please drop at least one .md file.', true);
+            }
             return;
         }
-
+        
         for (const file of mdFiles) {
             try {
                 const fileContent = await file.text();

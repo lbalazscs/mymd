@@ -228,10 +228,10 @@ html, body {
 }
 
 /* When app is in source mode, flip visibility */
-.app-container.show-source .source-view {
+.content-pane.show-source .source-view {
     display: block;
 }
-.app-container.show-source .preview-view {
+.content-pane.show-source .preview-view {
     display: none;
 }
 
@@ -383,7 +383,7 @@ html, body {
 
 /* --- Drag and Drop Overlay --- */
 .app-container.is-dragging::before {
-    content: 'Drop .md file here';
+    content: 'Drop .md file(s) here';
     position: absolute;
     top: 0;
     left: 0;
@@ -398,5 +398,4 @@ html, body {
     font-size: 2em;
     color: var(--primary-text-color);
     z-index: 1000;
-    pointer-events: none;
 }
