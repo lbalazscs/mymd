@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Undo Toast helper
-    function showUndoToast(tabName, onUndo, onCleanup) {
+    function showUndoToast(message, onUndo, onCleanup) {
         let isUndone = false; // Track if the user clicked undo
         
         const toastNode = document.createElement("div");
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toastNode.style.width = "100%";
 
         const textSpan = document.createElement("span");
-        textSpan.textContent = `Closed "${tabName}"`;
+        textSpan.textContent = message;
         
         const undoBtn = document.createElement("button");
         undoBtn.textContent = "Undo";
@@ -157,16 +157,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeTab = document.querySelector('.tab.active');
         if (!activeTab) return;
         
+        const tabsToClose = [];
         document.querySelectorAll('.tab').forEach(tab => {
             if (tab !== activeTab) {
-                closeTab(tab, true);
+                tabsToClose.push(tab);
             }
         });
+        closeTabs(tabsToClose);
     }
 
     function closeAllTabs() {
-        document.querySelectorAll('.tab').forEach(t => closeTab(t, true));
-        createNewTab();
+        const tabsToClose = Array.from(document.querySelectorAll('.tab'));
+        closeTabs(tabsToClose);
     }
 
     menuCloseOthers.addEventListener('click', (e) => {
@@ -325,83 +327,150 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function closeTab(tabToClose, bypassNewTabCheck = false) {
-        // If the user clicked the close button while a tab is being renamed, 
-        // the blur event might not have fired yet. Force blur to ensure we have a span.
-        const renamingInput = tabToClose.querySelector('.tab-name-input');
-        if (renamingInput) {
-            renamingInput.blur();
-        }
+    function closeTab(tabToClose) {
+        closeTabs([tabToClose]);
+    }
 
-        const wasActive = tabToClose.classList.contains('active');
-        const tabId = tabToClose.dataset.tabId;
-        const contentPaneToClose = document.getElementById(tabId);
-        
-        // Capture state for Undo
-        let nextSibling = tabToClose.nextElementSibling;
-        const span = tabToClose.querySelector('span');
-        
-        // Fallback in case the blur conversion was not synchronous
-        const tabName = span ? span.textContent : (renamingInput && renamingInput.value.trim() ? renamingInput.value.trim() : 'Tab');
-        
-        const isEmpty = contentPaneToClose && contentPaneToClose.querySelector('.placeholder') !== null;
+    function closeTabs(tabsToClose) {
+        if (!tabsToClose || tabsToClose.length === 0) return;
 
-        // Detach elements from DOM
-        tabToClose.remove();
-        if (contentPaneToClose) {
-            contentPaneToClose.remove();
-        }
-
-        if (wasActive) {
-            const prevSibling = tabToClose.previousElementSibling;
-            if (prevSibling && prevSibling.classList.contains('tab')) {
-                switchTab(prevSibling);
-            } else if (nextSibling && nextSibling.classList.contains('tab')) {
-                switchTab(nextSibling);
+        // If the active tab is being closed, find a fallback tab to activate
+        let fallbackTab = null;
+        const activeTab = document.querySelector('.tab.active');
+        if (activeTab && tabsToClose.includes(activeTab)) {
+            const allTabs = Array.from(tabList.querySelectorAll('.tab'));
+            let idx = allTabs.indexOf(activeTab);
+            
+            // Try previous siblings not in tabsToClose
+            for (let i = idx - 1; i >= 0; i--) {
+                if (!tabsToClose.includes(allTabs[i])) {
+                    fallbackTab = allTabs[i];
+                    break;
+                }
+            }
+            // If none, try next siblings not in tabsToClose
+            if (!fallbackTab) {
+                for (let i = idx + 1; i < allTabs.length; i++) {
+                    if (!tabsToClose.includes(allTabs[i])) {
+                        fallbackTab = allTabs[i];
+                        break;
+                    }
+                }
             }
         }
-        
-        if (!bypassNewTabCheck && tabList.querySelectorAll('.tab').length === 0) {
+
+        // Batch state collection
+        const closedTabsData = [];
+        tabsToClose.forEach(tabToClose => {
+            const renamingInput = tabToClose.querySelector('.tab-name-input');
+            if (renamingInput) {
+                renamingInput.blur();
+            }
+
+            const wasActive = tabToClose.classList.contains('active');
+            const tabId = tabToClose.dataset.tabId;
+            const contentPaneToClose = document.getElementById(tabId);
+            
+            // Capture all subsequent siblings up to newTabBtn
+            const siblings = [];
+            let current = tabToClose.nextElementSibling;
+            while (current && current !== newTabBtn) {
+                siblings.push(current);
+                current = current.nextElementSibling;
+            }
+
+            const span = tabToClose.querySelector('span');
+            const tabName = span ? span.textContent : (renamingInput && renamingInput.value.trim() ? renamingInput.value.trim() : 'Tab');
+            
+            const isEmpty = contentPaneToClose && contentPaneToClose.querySelector('.placeholder') !== null;
+
+            closedTabsData.push({
+                tabElement: tabToClose,
+                contentPaneElement: contentPaneToClose,
+                wasActive: wasActive,
+                tabId: tabId,
+                tabName: tabName,
+                isEmpty: isEmpty,
+                siblings: siblings
+            });
+        });
+
+        // Detach elements from DOM
+        closedTabsData.forEach(data => {
+            data.tabElement.remove();
+            if (data.contentPaneElement) {
+                data.contentPaneElement.remove();
+            }
+        });
+
+        // Activate the determined fallback tab if needed
+        if (fallbackTab) {
+            switchTab(fallbackTab);
+        }
+
+        // If all tabs are closed, auto-create a blank one and save its ID
+        let autoCreatedTabId = null;
+        if (tabList.querySelectorAll('.tab').length === 0) {
             createNewTab();
+            const newTabs = tabList.querySelectorAll('.tab');
+            if (newTabs.length > 0) {
+                autoCreatedTabId = newTabs[newTabs.length - 1].dataset.tabId;
+            }
         }
 
         // --- UNDO LOGIC ---
-        if (!isEmpty) {
-            showUndoToast(tabName, () => {
-                // --- ON UNDO CALLBACK ---
-                
-                // 1. Re-insert the tab safely. 
-                if (nextSibling && nextSibling.parentNode === tabList) {
-                    tabList.insertBefore(tabToClose, nextSibling);
-                } else {
-                    tabList.insertBefore(tabToClose, newTabBtn);
-                }
-
-                // 2. Re-insert the content pane
-                if (contentPaneToClose) {
-                    contentContainer.appendChild(contentPaneToClose);
-                }
-
-                // 3. Make the restored tab active
-                switchTab(tabToClose);
-
-                // 4. Cleanup: Find and delete any entirely empty auto-created tabs
-                // so they don't clutter the UI when restoring multiple files.
-                document.querySelectorAll('.content-pane').forEach(pane => {
-                    if (pane.id !== tabId && pane.querySelector('.placeholder')) {
-                        const emptyTabId = pane.id;
-                        const emptyTab = document.querySelector(`.tab[data-tab-id="${emptyTabId}"]`);
-                        if (emptyTab) emptyTab.remove();
-                        pane.remove();
+        // Filter out empty placeholder tabs
+        const restorableTabs = closedTabsData.filter(d => !d.isEmpty);
+        
+        if (restorableTabs.length > 0) {
+            const message = restorableTabs.length > 1 
+                ? `Closed ${restorableTabs.length} tabs` 
+                : `Closed "${restorableTabs[0].tabName}"`;
+            
+            showUndoToast(message, () => {
+                // --- ON UNDO CALLBACK (Restore in bulk) ---
+                restorableTabs.forEach(data => {
+                    // Find the first surviving original sibling that is still in the DOM
+                    let insertRef = newTabBtn;
+                    for (const sibling of data.siblings) {
+                        if (sibling.parentNode === tabList) {
+                            insertRef = sibling;
+                            break;
+                        }
+                    }
+                    
+                    // Re-insert the tab and content pane
+                    tabList.insertBefore(data.tabElement, insertRef);
+                    if (data.contentPaneElement) {
+                        contentContainer.appendChild(data.contentPaneElement);
                     }
                 });
-                
+
+                // Reactivate the originally active restored tab (or the most recent one)
+                const originallyActive = restorableTabs.find(d => d.wasActive);
+                if (originallyActive) {
+                    switchTab(originallyActive.tabElement);
+                } else if (restorableTabs.length > 0) {
+                    switchTab(restorableTabs[restorableTabs.length - 1].tabElement);
+                }
+
+                // Delete only the exact auto-created tab if it's still untouched
+                if (autoCreatedTabId) {
+                    const autoTab = document.querySelector(`.tab[data-tab-id="${autoCreatedTabId}"]`);
+                    const autoPane = document.getElementById(autoCreatedTabId);
+                    if (autoTab && autoPane && autoPane.querySelector('.placeholder')) {
+                        autoTab.remove();
+                        autoPane.remove();
+                    }
+                }
             }, () => {
-                // on cleanup callback (after 5 seconds): detaches the nodes
-                // from the JS closure, guaranteeing they get GCd.
-                tabToClose = null;
-                contentPaneToClose = null;
-                nextSibling = null;
+                // Cleanup (after the toast is gone): detaches the nodes
+                // from the JS closure, guaranteeing they get GCd
+                restorableTabs.forEach(data => {
+                    data.tabElement = null;
+                    data.contentPaneElement = null;
+                    data.siblings = null;
+                });
             });
         }
     }
