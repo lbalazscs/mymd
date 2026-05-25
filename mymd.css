@@ -1,0 +1,402 @@
+/* --- General & Dark Theme --- */
+:root {
+    --bg-color: #1e1e1e;
+    --primary-text-color: #d4d4d4;
+    --secondary-text-color: #a0a0a0;
+    --border-color: #333333;
+    --tab-bg: #2d2d2d;
+    --tab-active-bg: var(--bg-color);
+    --tab-hover-bg: #3e3e3e;
+    --button-bg: #3c3c3c;
+    --button-hover-bg: #5a5a5a;
+    --accent-color: #007acc;
+    --code-bg: #252526;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--primary-text-color);
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+/* --- App Layout --- */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+}
+
+/* --- Tabs --- */
+.tabs-container {
+    display: flex;
+    flex-shrink: 0;
+    background-color: #252526;
+    border-bottom: 1px solid var(--border-color);
+    align-items: center;
+    padding-left: 5px;
+    padding-right: 15px; /* Space for the toggle */
+}
+
+.tab-list {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+    overflow-x: auto;
+}
+
+.tab {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-right: 1px solid var(--border-color);
+    background-color: var(--tab-bg);
+    color: var(--secondary-text-color);
+    user-select: none;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.tab:hover {
+    background-color: var(--tab-hover-bg);
+    color: var(--primary-text-color);
+}
+
+.tab.active {
+    background-color: var(--tab-active-bg);
+    color: var(--primary-text-color);
+    border-bottom-color: transparent;
+}
+
+.tab.dragging {
+    opacity: 0.5;
+    background-color: var(--tab-hover-bg);
+}
+
+.close-tab {
+    margin-left: 10px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 50%;
+    line-height: 1;
+}
+
+.close-tab:hover {
+    color: white;
+    background-color: #c00;
+}
+
+#new-tab-btn {
+    padding: 5px 12px;
+    margin-left: 5px;
+    font-size: 20px;
+    font-weight: bold;
+    border: none;
+    background-color: transparent;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+#new-tab-btn:hover {
+    background-color: var(--button-hover-bg);
+    color: white;
+}
+
+/* --- Dropdown Menu --- */
+.view-controls {
+    margin-left: auto; /* Push to right */
+    display: flex;
+    align-items: center;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-btn {
+    background: none;
+    border: none;
+    color: var(--secondary-text-color);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0 10px;
+    line-height: 1;
+    font-weight: bold;
+    user-select: none;
+}
+
+.dropdown-btn:hover {
+    color: var(--primary-text-color);
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background-color: var(--tab-bg);
+    min-width: 200px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
+    z-index: 2000;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-top: 5px;
+}
+
+.dropdown-content.show {
+    display: block;
+}
+
+.dropdown-content a {
+    color: var(--primary-text-color);
+    padding: 10px 16px;
+    text-decoration: none;
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    align-items: center;
+}
+
+.dropdown-content a:hover {
+    background-color: var(--tab-hover-bg);
+}
+
+.hotkey {
+    color: var(--secondary-text-color);
+    font-size: 0.85em;
+    margin-left: 15px;
+}
+
+/* --- Content Area --- */
+.content-container {
+    flex-grow: 1;
+    position: relative;
+}
+
+.content-pane {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 20px 40px;
+    overflow-y: auto;
+    display: none;
+}
+
+.content-pane.active {
+    display: block;
+}
+
+.placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80%;
+    color: var(--secondary-text-color);
+    font-size: 1.5em;
+    text-align: center;
+    line-height: 1.5;
+}
+
+/* --- View Modes (Preview vs Source) --- */
+.source-view {
+    display: none;
+}
+
+.preview-view {
+    display: block;
+}
+
+/* When app is in source mode, flip visibility */
+.app-container.show-source .source-view {
+    display: block;
+}
+.app-container.show-source .preview-view {
+    display: none;
+}
+
+/* --- Rendered Markdown Styles --- */
+.preview-view h1, .preview-view h2, .preview-view h3 {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.3em;
+    margin-top: 24px;
+    margin-bottom: 16px;
+}
+
+.preview-view h1 { font-size: 2em; }
+.preview-view h2 { font-size: 1.5em; }
+.preview-view h3 { font-size: 1.2em; }
+
+.preview-view a {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+.preview-view a:hover {
+    text-decoration: underline;
+}
+
+.preview-view blockquote {
+    padding: 0 1em;
+    color: var(--secondary-text-color);
+    border-left: 0.25em solid var(--border-color);
+    margin-left: 0;
+}
+
+.preview-view code {
+    padding: .2em .4em;
+    margin: 0;
+    font-size: 85%;
+    background-color: var(--code-bg);
+    border-radius: 6px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.preview-view pre {
+    padding: 16px;
+    overflow: auto;
+    font-size: 85%;
+    line-height: 1.45;
+    background-color: var(--code-bg);
+    border-radius: 6px;
+}
+
+.preview-view pre code {
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+    border: none;
+}
+
+.preview-view table {
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+
+.preview-view th, .preview-view td {
+    border: 1px solid var(--border-color);
+    padding: 6px 13px;
+}
+
+.preview-view tr {
+    background-color: var(--bg-color);
+    border-top: 1px solid var(--border-color);
+}
+
+.preview-view tr:nth-child(2n) {
+    background-color: #252526;
+}
+
+/* --- Source View Styling --- */
+.source-view pre {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 14px;
+    tab-size: 4;
+}
+
+.source-view pre code {
+    background: transparent;
+    padding: 0;
+    white-space: pre-wrap; /* Wrap long lines in source view */
+    word-break: break-word;
+}
+
+/* --- KaTeX Math Styling (Dark Theme) --- */
+.katex {
+    color: var(--primary-text-color);
+}
+
+.katex-display {
+    margin: 1em 0;
+}
+
+/* --- Code Block Copy Button --- */
+.code-block-wrapper {
+    position: relative;
+    margin: 1em 0;
+}
+
+.copy-code-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px;
+    background-color: #4a4a4a;
+    color: #eee;
+    border: 1px solid #666;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out, background-color 0.2s;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.code-block-wrapper:hover .copy-code-btn {
+    opacity: 1;
+}
+
+.copy-code-btn:hover {
+    background-color: #6a6a6a;
+}
+
+.copy-code-btn:active {
+    background-color: #3a3a3a;
+}
+
+/* --- Tab Renaming Input --- */
+.tab .tab-name-input {
+    border: 1px solid var(--accent-color);
+    outline: none;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    background-color: var(--bg-color);
+    color: var(--primary-text-color);
+    padding: 0 4px;
+}
+
+/* --- Drag and Drop Overlay --- */
+.app-container.is-dragging::before {
+    content: 'Drop .md file here';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(45, 45, 45, 0.85);
+    border: 3px dashed var(--accent-color);
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2em;
+    color: var(--primary-text-color);
+    z-index: 1000;
+    pointer-events: none;
+}
