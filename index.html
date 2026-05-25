@@ -643,8 +643,8 @@
                 // Prevent hotkeys from triggering when the user is typing inside an input field
                 if (e.target.tagName === 'INPUT') return;
 
-                // S to toggle source
-                if (e.key.toLowerCase() === 's') {
+                // S to toggle source (if no modifier keys are pressed)
+                if (e.key.toLowerCase() === 's' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
                     e.preventDefault();
                     toggleSource();
                 }
@@ -695,9 +695,17 @@
                         pedantic: false,
                         gfm: true,
                         breaks: false,
-                        highlight: function (code, lang) {
-                            const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-                            return hljs.highlight(code, { language, ignoreIllegals: true }).value;
+                        renderer: {
+                            code(token) {
+                                const lang = token.lang || 'plaintext';
+                                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                                
+                                // Highlight the raw text string
+                                const highlighted = hljs.highlight(token.text, { language, ignoreIllegals: true }).value;
+                                
+                                // Output the final <pre><code> block with the proper hljs classes
+                                return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>\n`;
+                            }
                         }
                     });
                 }
@@ -777,13 +785,24 @@
             }
 
             function closeTab(tabToClose, bypassNewTabCheck = false) {
+                // If the user clicked the close button while a tab is being renamed, 
+                // the blur event might not have fired yet. Force blur to ensure we have a span.
+                const renamingInput = tabToClose.querySelector('.tab-name-input');
+                if (renamingInput) {
+                    renamingInput.blur();
+                }
+
                 const wasActive = tabToClose.classList.contains('active');
                 const tabId = tabToClose.dataset.tabId;
                 const contentPaneToClose = document.getElementById(tabId);
                 
                 // Capture state for Undo
                 let nextSibling = tabToClose.nextElementSibling;
-                const tabName = tabToClose.querySelector('span').textContent;
+                const span = tabToClose.querySelector('span');
+                
+                // Fallback in case the blur conversion was not synchronous
+                const tabName = span ? span.textContent : (renamingInput && renamingInput.value.trim() ? renamingInput.value.trim() : 'Tab');
+                
                 const isEmpty = contentPaneToClose && contentPaneToClose.querySelector('.placeholder') !== null;
 
                 // Detach elements from DOM
@@ -971,11 +990,6 @@
 
                 addCopyButtons(previewView);
                 
-                const codeBlocks = activeContentPane.querySelectorAll('pre code');
-                codeBlocks.forEach(block => {
-                    hljs.highlightElement(block);
-                });
-                
                 if(sourceView) {
                     const sourceCodeBlock = sourceView.querySelector('code');
                     if(sourceCodeBlock) hljs.highlightElement(sourceCodeBlock);
@@ -983,9 +997,15 @@
 
                 // If a filename was provided, strips the .md extension and sets it as the tab label
                 if (filename && activeTab) {
+                    const cleanName = filename.replace(/\.md$/i, '');
                     const tabLabel = activeTab.querySelector('span');
                     if (tabLabel) {
-                        tabLabel.textContent = filename.replace(/\.md$/i, '');
+                        tabLabel.textContent = cleanName;
+                    } else {
+                        const tabInput = activeTab.querySelector('.tab-name-input');
+                        if (tabInput) {
+                            tabInput.value = cleanName;
+                        }
                     }
                 }
             }
