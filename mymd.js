@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createNewTab() {
         tabCounter++;
-        const tabId = `tab-${tabCounter}`;
+        const tabId = `mymd-pane-${tabCounter}`;
 
         deactivateAllTabs();
 
@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function switchTab(tabToActivate) {
         deactivateAllTabs();
         const tabId = tabToActivate.dataset.tabId;
-        const contentPaneToActivate = document.getElementById(tabId);
+        const contentPaneToActivate = document.querySelector(`.content-pane[id="${tabId}"]`);
 
         tabToActivate.classList.add('active');
         if (contentPaneToActivate) {
@@ -382,8 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const wasActive = tabToClose.classList.contains('active');
             const tabId = tabToClose.dataset.tabId;
-            const contentPaneToClose = document.getElementById(tabId);
-            
+            const contentPaneToClose = document.querySelector(`.content-pane[id="${tabId}"]`);            
             // Capture all subsequent siblings up to newTabBtn
             const siblings = [];
             let current = tabToClose.nextElementSibling;
@@ -459,18 +458,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
 
-                // Reactivate the originally active restored tab (or the most recent one)
+                // Reactivate the originally active restored tab (if any)
                 const originallyActive = restorableTabs.find(d => d.wasActive);
                 if (originallyActive) {
                     switchTab(originallyActive.tabElement);
-                } else if (restorableTabs.length > 0) {
-                    switchTab(restorableTabs[restorableTabs.length - 1].tabElement);
                 }
-
+                
                 // Delete only the exact auto-created tab if it's still untouched
                 if (autoCreatedTabId) {
                     const autoTab = document.querySelector(`.tab[data-tab-id="${autoCreatedTabId}"]`);
-                    const autoPane = document.getElementById(autoCreatedTabId);
+                    const autoPane = document.querySelector(`.content-pane[id="${autoCreatedTabId}"]`);
                     if (autoTab && autoPane && autoPane.querySelector('.placeholder')) {
                         autoTab.remove();
                         autoPane.remove();
@@ -556,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
             wrapper.appendChild(button);
             
             button.addEventListener('click', () => {
-                const code = block.querySelector('code').innerText;
+                const code = block.textContent;
                 navigator.clipboard.writeText(code).then(() => {
                     button.innerHTML = checkIcon;
                     setTimeout(() => { button.innerHTML = copyIcon; }, 2000);
