@@ -217,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return dollarMatch ? dollarMatch.index : -1;
         },
         tokenizer(src) {
-            const displayMatch = src.match(/^\$\$([^\$]+?)\$\$/);
+            const displayMatch = src.match(/^\$\$([\s\S]+?)\$\$/);
             if (displayMatch) {
                 return { type: 'math', raw: displayMatch[0], text: displayMatch[1].trim(), displayMode: true };
             }
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             } catch (e) {
                 console.error('KaTeX rendering error:', e);
-                return `<span style="color: #ff6b6b;">${token.raw}</span>`;
+                return `<span style="color: #ff6b6b;">${escapeHtml(token.raw)}</span>`;
             }
         }
     };
@@ -382,7 +382,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const wasActive = tabToClose.classList.contains('active');
             const tabId = tabToClose.dataset.tabId;
-            const contentPaneToClose = document.querySelector(`.content-pane[id="${tabId}"]`);            
+            const contentPaneToClose = document.querySelector(`.content-pane[id="${tabId}"]`);
+            
             // Capture all subsequent siblings up to newTabBtn
             const siblings = [];
             let current = tabToClose.nextElementSibling;
@@ -598,7 +599,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Force exit Source mode specifically on this tab on paste/drop
         setSourceMode(false);
 
-        const renderedHtml = marked.parse(markdown);
+        // Sanitize the generated HTML to safely strip <script> and malicious attributes
+        const renderedHtml = DOMPurify.sanitize(marked.parse(markdown));
         const sourceHtml = `<pre><code class="language-markdown">${escapeHtml(markdown)}</code></pre>`;
 
         activeContentPane.innerHTML = `
