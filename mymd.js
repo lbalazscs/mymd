@@ -50,6 +50,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Undo Toast helper
     function showUndoToast(message, onUndo, onCleanup) {
+        if (typeof Toastify === 'undefined') {
+            // Fallback if Toastify is missing: skip undo and perform cleanup immediately
+            if (onCleanup) onCleanup();
+            return;
+        }
+
         let isUndone = false; // Track if the user clicked undo
         
         const toastNode = document.createElement("div");
@@ -250,10 +256,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderer: {
                     code(token) {
                         const lang = token.lang || 'plaintext';
-                        const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-                        
-                        // Highlight the raw text string
-                        const highlighted = hljs.highlight(token.text, { language, ignoreIllegals: true }).value;
+                        let language = 'plaintext';
+                        let highlighted = '';
+
+                        if (typeof hljs !== 'undefined') {
+                            language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                            // Highlight the raw text string
+                            highlighted = hljs.highlight(token.text, { language, ignoreIllegals: true }).value;
+                        } else {
+                            language = lang;
+                            highlighted = escapeHtml(token.text);
+                        }
                         
                         // Output the final <pre><code> block with the proper hljs classes
                         return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>\n`;
@@ -599,8 +612,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Force exit Source mode specifically on this tab on paste/drop
         setSourceMode(false);
 
-        // Sanitize the generated HTML to safely strip <script> and malicious attributes
-        const renderedHtml = DOMPurify.sanitize(marked.parse(markdown));
+        let renderedHtml = '';
+        if (typeof marked !== 'undefined') {
+            const rawHtml = marked.parse(markdown);
+            // Fall back to un-sanitized parsing if DOMPurify fails to load
+            renderedHtml = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
+        } else {
+            // Fall back to formatted raw text if marked fails to load
+            renderedHtml = `<pre><code>${escapeHtml(markdown)}</code></pre>`;
+            showToast('Markdown parser not loaded. Showing raw text.', true);
+        }
+
         const sourceHtml = `<pre><code class="language-markdown">${escapeHtml(markdown)}</code></pre>`;
 
         activeContentPane.innerHTML = `
@@ -613,9 +635,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         addCopyButtons(previewView);
         
-        if(sourceView) {
+        if (sourceView) {
             const sourceCodeBlock = sourceView.querySelector('code');
-            if(sourceCodeBlock) hljs.highlightElement(sourceCodeBlock);
+            if (sourceCodeBlock && typeof hljs !== 'undefined') {
+                hljs.highlightElement(sourceCodeBlock);
+            }
         }
 
         // If a filename was provided, strips the .md extension and sets it as the tab label
