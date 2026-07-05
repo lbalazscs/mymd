@@ -48,6 +48,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Shared toast styling. One place to retheme every toast in the app.
+    const TOAST_DEFAULTS = { gravity: "bottom", position: "right", stopOnFocus: true };
+    const TOAST_COLORS = { error: "#c00", success: "#28a745", neutral: "#333" };
+
+    // Builds and attaches an animated progress bar to a toast's content node,
+    // showing how much time is left before the toast auto-closes. Pauses in
+    // sync with Toastify's own stopOnFocus timer whenever the toast is hovered.
+    function attachToastProgressBar(container, duration) {
+        if (!duration || duration <= 0) return;
+
+        container.style.position = "relative";
+        container.style.paddingBottom = "8px";
+
+        const track = document.createElement("div");
+        track.className = "toast-progress-track";
+
+        const bar = document.createElement("div");
+        bar.className = "toast-progress-bar";
+        bar.style.animationDuration = `${duration}ms`;
+
+        track.appendChild(bar);
+        container.appendChild(track);
+
+        container.addEventListener('mouseenter', () => {
+            bar.style.animationPlayState = "paused";
+        });
+        container.addEventListener('mouseleave', () => {
+            bar.style.animationPlayState = "running";
+        });
+    }
+
     // Undo Toast helper
     function showUndoToast(message, onUndo, onCleanup) {
         if (typeof Toastify === 'undefined') {
@@ -57,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let isUndone = false; // Track if the user clicked undo
+        const duration = 5000;
         
         const toastNode = document.createElement("div");
         toastNode.style.display = "flex";
@@ -83,11 +115,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const toast = Toastify({
             node: toastNode,
-            duration: 5000,
-            gravity: "bottom",
-            position: "right",
+            duration: duration,
+            ...TOAST_DEFAULTS,
             style: {
-                background: "#333",
+                background: TOAST_COLORS.neutral,
                 color: "#fff",
                 borderRadius: "4px",
                 boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
@@ -101,6 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+
+        attachToastProgressBar(toastNode, duration);
 
         undoBtn.addEventListener('click', () => {
             if (isUndone) return; // The user double-clicked the button
@@ -118,17 +151,27 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(message); // Fallback just in case script hasn't loaded
             return;
         }
-        Toastify({
-            text: message,
-            duration: 3000,
-            gravity: "bottom", 
-            position: "right", 
+
+        const duration = 3000;
+
+        const toastNode = document.createElement("div");
+        const textSpan = document.createElement("span");
+        textSpan.textContent = message;
+        toastNode.appendChild(textSpan);
+
+        const toast = Toastify({
+            node: toastNode,
+            duration: duration,
+            ...TOAST_DEFAULTS,
             style: {
-                background: isError ? "#c00" : "#28a745",
+                background: isError ? TOAST_COLORS.error : TOAST_COLORS.success,
                 color: "#fff",
                 borderRadius: "4px"
             }
-        }).showToast();
+        });
+
+        attachToastProgressBar(toastNode, duration);
+        toast.showToast();
     }
 
     // --- Dropdown Logic ---
@@ -684,6 +727,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
+        let loadedCount = 0;
         for (const file of mdFiles) {
             try {
                 const fileContent = await file.text();
@@ -692,10 +736,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     continue; 
                 }
                 renderContent(fileContent, file.name);
+                loadedCount++;
             } catch (err) {
                 console.error(`Error reading file ${file.name}:`, err);
                 showToast(`Sorry, there was an error reading "${file.name}".`, true);
             }
+        }
+
+        // Only worth a summary toast when multiple files were dropped at once
+        if (mdFiles.length > 1 && loadedCount > 0) {
+            showToast(`Loaded ${loadedCount} file${loadedCount > 1 ? 's' : ''}`, false);
         }
     }
 

@@ -381,6 +381,32 @@ html, body {
     padding: 0 4px;
 }
 
+/* --- Toast Progress Bar --- */
+.toast-progress-track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background-color: rgba(255, 255, 255, 0.25);
+    overflow: hidden;
+}
+
+.toast-progress-bar {
+    height: 100%;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.85);
+    transform-origin: left;
+    animation-name: toast-progress-shrink;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+}
+
+@keyframes toast-progress-shrink {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
 /* --- Drag and Drop Overlay --- */
 .app-container.is-dragging::before {
     content: 'Drop .md file(s) here';
