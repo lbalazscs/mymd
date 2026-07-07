@@ -1,12 +1,12 @@
 const isMac = navigator.userAgent.toLowerCase().includes('mac');
 const pasteShortcut = isMac ? 'Cmd+V' : 'Ctrl+V';
-        
+
 document.addEventListener('DOMContentLoaded', () => {
-    const appContainer = document.querySelector('.app-container'); 
+    const appContainer = document.querySelector('.app-container');
     const tabList = document.getElementById('tab-list');
     const contentContainer = document.querySelector('.content-container');
     const newTabBtn = document.getElementById('new-tab-btn');
-    
+
     // Dropdown Menu Elements
     const dropdownBtn = document.querySelector('.dropdown-btn');
     const dropdownContent = document.querySelector('.dropdown-content');
@@ -18,17 +18,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let tabCounter = 0;
 
     const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
-    const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-    
+    const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
     tabList.addEventListener('dragover', (e) => {
         const draggingTab = document.querySelector('.tab.dragging');
         if (!draggingTab) return; // If dragging a file instead of a tab, ignore this and let the file drop handler take over
 
         e.preventDefault(); // Allow the drop
-        
+
         // Find all tabs except the one currently being dragged
         const draggableElements = [...tabList.querySelectorAll('.tab:not(.dragging)')];
-        
+
         // Determine which element the cursor is hovering over
         const afterElement = draggableElements.reduce((closest, child) => {
             const box = child.getBoundingClientRect();
@@ -48,9 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Shared toast styling. One place to retheme every toast in the app.
+    // Shared toast styling
     const TOAST_DEFAULTS = { gravity: "bottom", position: "right", stopOnFocus: true };
-    const TOAST_COLORS = { error: "#c00", success: "#28a745", neutral: "#333" };
+    const TOAST_COLORS = { error: "var(--danger-color)", success: "var(--success-color)", neutral: "var(--toast-neutral-bg)" };
 
     // Builds and attaches an animated progress bar to a toast's content node,
     // showing how much time is left before the toast auto-closes. Pauses in
@@ -59,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!duration || duration <= 0) return;
 
         container.style.position = "relative";
-        container.style.paddingBottom = "8px";
 
         const track = document.createElement("div");
         track.className = "toast-progress-track";
@@ -89,8 +88,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let isUndone = false; // Track if the user clicked undo
         const duration = 5000;
-        
+
         const toastNode = document.createElement("div");
+        toastNode.style.padding = "12px 8px 6px 8px";
+        toastNode.style.boxSizing = "border-box";
         toastNode.style.display = "flex";
         toastNode.style.justifyContent = "space-between";
         toastNode.style.alignItems = "center";
@@ -98,12 +99,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const textSpan = document.createElement("span");
         textSpan.textContent = message;
-        
+
         const undoBtn = document.createElement("button");
         undoBtn.textContent = "Undo";
         undoBtn.style.marginLeft = "15px";
         undoBtn.style.padding = "2px 8px";
-        undoBtn.style.background = "green";
+        undoBtn.style.background = "var(--success-color)";
         undoBtn.style.color = "white";
         undoBtn.style.border = "none";
         undoBtn.style.borderRadius = "3px";
@@ -118,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             duration: duration,
             ...TOAST_DEFAULTS,
             style: {
+                padding: "0",
                 background: TOAST_COLORS.neutral,
                 color: "#fff",
                 borderRadius: "4px",
@@ -155,8 +157,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const duration = 3000;
 
         const toastNode = document.createElement("div");
+        toastNode.style.padding = "12px 8px 6px 8px";
+        toastNode.style.boxSizing = "border-box";
+        toastNode.style.display = "flex";
+        toastNode.style.alignItems = "center";
+
         const textSpan = document.createElement("span");
         textSpan.textContent = message;
+
+        if (isError) {
+            const iconSpan = document.createElement("span");
+            iconSpan.style.marginRight = "8px";
+            iconSpan.style.display = "flex";
+            iconSpan.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+            toastNode.appendChild(iconSpan);
+        }
+
         toastNode.appendChild(textSpan);
 
         const toast = Toastify({
@@ -164,9 +180,11 @@ document.addEventListener('DOMContentLoaded', () => {
             duration: duration,
             ...TOAST_DEFAULTS,
             style: {
-                background: isError ? TOAST_COLORS.error : TOAST_COLORS.success,
+                padding: "0",
+                background: TOAST_COLORS.neutral,
                 color: "#fff",
-                borderRadius: "4px"
+                borderRadius: "4px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.5)"
             }
         });
 
@@ -198,23 +216,23 @@ document.addEventListener('DOMContentLoaded', () => {
             menuToggleSourceText.textContent = 'Show Source';
         }
     }
-    
+
     menuToggleSource.addEventListener('click', (e) => {
         e.preventDefault();
         toggleSource();
     });
-    
+
     function toggleSource() {
         const activeContentPane = document.querySelector('.content-pane.active');
         if (!activeContentPane) return;
         const isSource = activeContentPane.classList.contains('show-source');
         setSourceMode(!isSource);
     }
-    
+
     function closeOtherTabs() {
         const activeTab = document.querySelector('.tab.active');
         if (!activeTab) return;
-        
+
         const tabsToClose = [];
         document.querySelectorAll('.tab').forEach(tab => {
             if (tab !== activeTab) {
@@ -244,6 +262,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Prevent hotkeys from triggering when the user is typing inside an input field
         if (e.target.tagName === 'INPUT') return;
 
+        // Escape to close dropdown if it's open
+        if (e.key === 'Escape' && dropdownContent.classList.contains('show')) {
+            dropdownContent.classList.remove('show');
+        }
+
         // S to toggle source (if no modifier keys are pressed)
         if (e.key.toLowerCase() === 's' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
             e.preventDefault();
@@ -270,7 +293,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (displayMatch) {
                 return { type: 'math', raw: displayMatch[0], text: displayMatch[1].trim(), displayMode: true };
             }
-            const inlineMatch = src.match(/^\$([^\$\n]+?)\$/);
+            // Strict match rejects preceding whitespace and following digits for closing `$`, preventing collision with adjacent currencies
+            const inlineMatch = src.match(/^\$(?!\s)([^\$\n]*?\S)\$(?!\d)/);
             if (inlineMatch) {
                 return { type: 'math', raw: inlineMatch[0], text: inlineMatch[1].trim(), displayMode: false };
             }
@@ -284,14 +308,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             } catch (e) {
                 console.error('KaTeX rendering error:', e);
-                return `<span style="color: #ff6b6b;">${escapeHtml(token.raw)}</span>`;
+                return `<span style="color: var(--danger-text-color, #ff6b6b);">${escapeHtml(token.raw)}</span>`;
             }
         }
     };
 
     function initializeMarked() {
         if (typeof marked !== 'undefined') {
-            marked.use({ 
+            marked.use({
                 extensions: [mathExtension],
                 pedantic: false,
                 gfm: true,
@@ -310,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             language = lang;
                             highlighted = escapeHtml(token.text);
                         }
-                        
+
                         // Output the final <pre><code> block with the proper hljs classes
                         return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>\n`;
                     }
@@ -318,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
-    
+
     initializeMarked();
 
     function createNewTab() {
@@ -334,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span>new ${tabCounter}</span>
             <button class="close-tab" title="Close Tab">×</button>
         `;
-        
+
         tab.setAttribute('draggable', 'true');
 
         tab.addEventListener('dragstart', (e) => {
@@ -351,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.addEventListener('dragend', () => {
             tab.classList.remove('dragging');
         });
-        
+
         tabList.insertBefore(tab, newTabBtn);
 
         const contentPane = document.createElement('div');
@@ -363,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         contentContainer.appendChild(contentPane);
-        
+
         tab.addEventListener('click', (e) => {
             if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
                 switchTab(tab);
@@ -389,13 +413,13 @@ document.addEventListener('DOMContentLoaded', () => {
         tabToActivate.classList.add('active');
         if (contentPaneToActivate) {
             contentPaneToActivate.classList.add('active');
-            
+
             // Sync source mode toggle text to match the newly activated tab's state
             const isSource = contentPaneToActivate.classList.contains('show-source');
             menuToggleSourceText.textContent = isSource ? 'Show Formatted' : 'Show Source';
         }
     }
-    
+
     function closeTab(tabToClose) {
         closeTabs([tabToClose]);
     }
@@ -409,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeTab && tabsToClose.includes(activeTab)) {
             const allTabs = Array.from(tabList.querySelectorAll('.tab'));
             let idx = allTabs.indexOf(activeTab);
-            
+
             // Try previous siblings not in tabsToClose
             for (let i = idx - 1; i >= 0; i--) {
                 if (!tabsToClose.includes(allTabs[i])) {
@@ -439,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const wasActive = tabToClose.classList.contains('active');
             const tabId = tabToClose.dataset.tabId;
             const contentPaneToClose = document.querySelector(`.content-pane[id="${tabId}"]`);
-            
+
             // Capture all subsequent siblings up to newTabBtn
             const siblings = [];
             let current = tabToClose.nextElementSibling;
@@ -450,7 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const span = tabToClose.querySelector('span');
             const tabName = span ? span.textContent : (renamingInput && renamingInput.value.trim() ? renamingInput.value.trim() : 'Tab');
-            
+
             const isEmpty = contentPaneToClose && contentPaneToClose.querySelector('.placeholder') !== null;
 
             closedTabsData.push({
@@ -490,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- UNDO LOGIC ---
         // Filter out empty placeholder tabs
         const restorableTabs = closedTabsData.filter(d => !d.isEmpty);
-        
+
         if (restorableTabs.length > 0) {
             const message = restorableTabs.length > 1 
                 ? `Closed ${restorableTabs.length} tabs` 
@@ -507,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             break;
                         }
                     }
-                    
+
                     // Re-insert the tab and content pane
                     tabList.insertBefore(data.tabElement, insertRef);
                     if (data.contentPaneElement) {
@@ -520,7 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (originallyActive) {
                     switchTab(originallyActive.tabElement);
                 }
-                
+
                 // Delete only the exact auto-created tab if it's still untouched
                 if (autoCreatedTabId) {
                     const autoTab = document.querySelector(`.tab[data-tab-id="${autoCreatedTabId}"]`);
@@ -559,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
         input.type = 'text';
         input.value = originalText;
         input.className = 'tab-name-input';
-        
+
         input.style.minWidth = `${labelElement.offsetWidth}px`;
 
         tab.replaceChild(input, labelElement);
@@ -597,18 +621,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const codeBlocks = container.querySelectorAll('pre');
         codeBlocks.forEach(block => {
             if (block.parentNode.classList.contains('code-block-wrapper')) return;
-            
+
             const wrapper = document.createElement('div');
             wrapper.className = 'code-block-wrapper';
             const button = document.createElement('button');
             button.className = 'copy-code-btn';
             button.innerHTML = copyIcon;
             button.title = 'Copy';
-            
+
             block.parentNode.insertBefore(wrapper, block);
             wrapper.appendChild(block);
             wrapper.appendChild(button);
-            
+
             button.addEventListener('click', () => {
                 const code = block.textContent;
                 navigator.clipboard.writeText(code).then(() => {
@@ -644,9 +668,10 @@ document.addEventListener('DOMContentLoaded', () => {
             activeTab = document.querySelector('.tab.active');
         }
 
-        const isCurrentTabEmpty = activeContentPane.querySelector('.placeholder');
+        const placeholderEl = activeContentPane.querySelector('.placeholder');
+        const tabHasContent = !placeholderEl;
 
-        if (!isCurrentTabEmpty) { // the current tab already has content
+        if (tabHasContent) { // the current tab already has content
             createNewTab();
             activeContentPane = document.querySelector('.content-pane.active');
             activeTab = document.querySelector('.tab.active');
@@ -677,7 +702,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const sourceView = activeContentPane.querySelector('.source-view');
 
         addCopyButtons(previewView);
-        
+
         if (sourceView) {
             const sourceCodeBlock = sourceView.querySelector('code');
             if (sourceCodeBlock && typeof hljs !== 'undefined') {
@@ -717,7 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // all .md files from the drop event
         const mdFiles = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.md'));
-        
+
         if (mdFiles.length === 0) {
             if (files.length === 1) {
                 showToast(`"${files[0].name}" is not an .md file.`, true);
@@ -726,14 +751,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return;
         }
-        
+
         let loadedCount = 0;
         for (const file of mdFiles) {
             try {
                 const fileContent = await file.text();
                 if (!fileContent) {
                     showToast(`The file "${file.name}" is empty.`, true);
-                    continue; 
+                    continue;
                 }
                 renderContent(fileContent, file.name);
                 loadedCount++;

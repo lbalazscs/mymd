@@ -11,6 +11,10 @@
     --button-hover-bg: #5a5a5a;
     --accent-color: #007acc;
     --code-bg: #252526;
+    --success-color: #28a745;
+    --danger-color: #c00;
+    --danger-text-color: #ff6b6b;
+    --toast-neutral-bg: #333;
 }
 
 html, body {
@@ -99,7 +103,7 @@ html, body {
 
 .close-tab:hover {
     color: white;
-    background-color: #c00;
+    background-color: var(--danger-color);
 }
 
 #new-tab-btn {
@@ -386,7 +390,7 @@ html, body {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 0;
+    top: 0;
     height: 3px;
     background-color: rgba(255, 255, 255, 0.25);
     overflow: hidden;
@@ -395,7 +399,7 @@ html, body {
 .toast-progress-bar {
     height: 100%;
     width: 100%;
-    background-color: rgba(255, 255, 255, 0.85);
+    background-color: var(--accent-color);
     transform-origin: left;
     animation-name: toast-progress-shrink;
     animation-timing-function: linear;
