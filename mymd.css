@@ -8,8 +8,10 @@
     --tab-bg: #2d2d2d;
     --tab-active-bg: #104449;
     --tab-hover-bg: #3e3e3e;
+    --tab-max-width: 200px;
     --button-bg: #3c3c3c;
     --button-hover-bg: #5a5a5a;
+    --button-active-bg: #2e2e2e;
     --code-bg: #252526;
     --success-color: #28a745;
     --danger-color: #9f0000;
@@ -32,7 +34,7 @@ html, body {
 .app-container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     position: relative;
 }
@@ -41,11 +43,11 @@ html, body {
 .tabs-container {
     display: flex;
     flex-shrink: 0;
-    background-color: #252526;
+    background-color: var(--code-bg);
     border-bottom: 1px solid var(--border-color);
     align-items: center;
     padding-left: 5px;
-    padding-right: 15px; /* Space for the toggle */
+    padding-right: 15px;
 }
 
 .tab-list {
@@ -68,6 +70,22 @@ html, body {
     white-space: nowrap;
 }
 
+.tab > span {
+    max-width: var(--tab-max-width, 200px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tab:focus {
+    outline: none;
+}
+
+.tab:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: -2px;
+}
+
 .tab:hover {
     background-color: var(--tab-hover-bg);
     color: var(--primary-text-color);
@@ -76,7 +94,6 @@ html, body {
 .tab.active {
     background-color: var(--tab-active-bg);
     color: var(--primary-text-color);
-    border-bottom-color: transparent;
 }
 
 .tab.dragging {
@@ -89,6 +106,7 @@ html, body {
     width: 20px;
     height: 20px;
     display: flex;
+    flex-shrink: 0;
     justify-content: center;
     align-items: center;
     padding: 0;
@@ -166,7 +184,7 @@ html, body {
     top: 100%;
     background-color: var(--tab-bg);
     min-width: 200px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.5);
     z-index: 2000;
     border: 1px solid var(--border-color);
     border-radius: 4px;
@@ -177,7 +195,11 @@ html, body {
     display: block;
 }
 
-.dropdown-content a {
+.dropdown-content button {
+    width: 100%;
+    background: none;
+    border: none;
+    font-family: inherit;
     color: var(--primary-text-color);
     padding: 10px 16px;
     text-decoration: none;
@@ -185,10 +207,15 @@ html, body {
     justify-content: space-between;
     font-size: 14px;
     align-items: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    text-align: left;
 }
 
-.dropdown-content a:hover {
+.dropdown-content button:hover,
+.dropdown-content button:focus {
     background-color: var(--tab-hover-bg);
+    outline: none;
 }
 
 .hotkey {
@@ -242,6 +269,7 @@ html, body {
 .content-pane.show-source .source-view {
     display: block;
 }
+
 .content-pane.show-source .preview-view {
     display: none;
 }
@@ -254,14 +282,23 @@ html, body {
     margin-bottom: 16px;
 }
 
-.preview-view h1 { font-size: 2em; }
-.preview-view h2 { font-size: 1.5em; }
-.preview-view h3 { font-size: 1.2em; }
+.preview-view h1 {
+    font-size: 2em;
+}
+
+.preview-view h2 {
+    font-size: 1.5em;
+}
+
+.preview-view h3 {
+    font-size: 1.2em;
+}
 
 .preview-view a {
     color: var(--accent-color);
     text-decoration: none;
 }
+
 .preview-view a:hover {
     text-decoration: underline;
 }
@@ -283,6 +320,8 @@ html, body {
 }
 
 .preview-view pre {
+    margin: 0;
+    min-width: 0;
     padding: 16px;
     overflow: auto;
     font-size: 85%;
@@ -314,7 +353,7 @@ html, body {
 }
 
 .preview-view tr:nth-child(2n) {
-    background-color: #252526;
+    background-color: var(--code-bg);
 }
 
 /* --- Source View Styling --- */
@@ -335,26 +374,35 @@ html, body {
 }
 
 /* --- KaTeX Math Styling (Dark Theme) --- */
-.katex {
-    color: var(--primary-text-color);
-}
-
 .katex-display {
     margin: 1em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 /* --- Code Block Copy Button --- */
 .code-block-wrapper {
     position: relative;
     margin: 1em 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.code-block-wrapper > pre,
+.copy-code-btn {
+    grid-area: 1 / 1;
 }
 
 .copy-code-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
+    justify-self: end;
+    align-self: start;
+    position: sticky;
+    top: 0;
+    margin-top: 8px;
+    margin-right: 8px;
+    z-index: 10;
     padding: 4px;
-    background-color: #4a4a4a;
+    background-color: var(--button-bg);
     color: #eee;
     border: 1px solid #666;
     border-radius: 4px;
@@ -372,11 +420,11 @@ html, body {
 }
 
 .copy-code-btn:hover {
-    background-color: #6a6a6a;
+    background-color: var(--button-hover-bg);
 }
 
 .copy-code-btn:active {
-    background-color: #3a3a3a;
+    background-color: var(--button-active-bg);
 }
 
 /* --- Tab Renaming Input --- */
@@ -390,6 +438,58 @@ html, body {
     background-color: var(--bg-color);
     color: var(--primary-text-color);
     padding: 0 4px;
+    max-width: var(--tab-max-width, 200px);
+    box-sizing: border-box;
+}
+
+/* --- Toasts --- */
+/* Built by showToast() in mymd.js. .toastify is Toastify's own class; chaining
+   .toast-box makes these rules win over its stylesheet whatever the load order. */
+.toastify.toast-box {
+    padding: 0;
+    background: var(--toast-neutral-bg);
+    color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Keeps the action button from crowding a short message */
+.toastify.toast-has-action {
+    min-width: 250px;
+}
+
+.toast-content {
+    position: relative; /* anchors the progress bar */
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    padding: 12px 8px 6px 8px;
+}
+
+.toast-icon {
+    display: flex;
+    margin-right: 8px;
+}
+
+/* The icon is drawn in currentColor. Use the text variant of the red: --danger-color
+   is a background color and has almost no contrast on the toast (about 1.5:1). */
+.toast-error .toast-icon {
+    color: var(--danger-text-color);
+}
+
+.toast-message {
+    flex: 1 1 auto; /* pushes the action button to the right edge */
+}
+
+.toast-action {
+    margin-left: 15px;
+    padding: 2px 8px;
+    background: var(--success-color);
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: bold;
 }
 
 /* --- Toast Progress Bar --- */
@@ -403,19 +503,13 @@ html, body {
     overflow: hidden;
 }
 
+/* The countdown (scaleX 1 -> 0) is created and controlled from JS,
+   see showToastWithProgressBar() in mymd.js. */
 .toast-progress-bar {
     height: 100%;
     width: 100%;
     background-color: var(--accent-color);
     transform-origin: left;
-    animation-name: toast-progress-shrink;
-    animation-timing-function: linear;
-    animation-fill-mode: forwards;
-}
-
-@keyframes toast-progress-shrink {
-    from { width: 100%; }
-    to { width: 0%; }
 }
 
 /* --- Drag and Drop Overlay --- */
