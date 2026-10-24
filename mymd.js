@@ -365,7 +365,8 @@ document.addEventListener('keydown', (e) => {
 // LaTeX math: $$display$$, \[display\], $inline$, and \(inline\). This is an *inline-level* extension, which means:
 //  - marked tries it at each `$` or `\` before its other inline rules, so a formula is consumed whole and the
 //    `_` or `*` inside it are not read as markdown;
-//  - even display math is part of a paragraph, so it cannot contain a blank line.
+//  - display math that is not on lines of its own ("text \[x\] more text") is part of a paragraph, so it cannot
+//    contain a blank line. Display math on its own lines is handled by mathBlockExtension below.
 const mathExtension = {
     name: 'math',
     level: 'inline',
@@ -413,10 +414,35 @@ const mathExtension = {
     }
 };
 
+// Display math ($$...$$ and \[...\]) that starts at the beginning of a line, as a *block-level* extension.
+// Without it the formula is part of a paragraph, and marked's block rules can cut it apart first: a line
+// consisting of only `=` or `-` becomes a setext heading underline, a line starting with `- ` becomes a list
+// item, and a blank line ends the paragraph. Block extensions are tried before all of those rules.
+// Display math that doesn't sit on lines of its own ("text \[x\] more text") still goes to the inline extension.
+const mathBlockExtension = {
+    name: 'mathBlock',
+    level: 'block',
+    // Hint for marked so a paragraph is cut right before a formula that follows it without a blank line.
+    // As the marked docs ask for block extensions, this returns the index of the "\n" preceding the formula.
+    start(src) {
+        return src.search(/\n {0,3}(?:\$\$|\\\[)/);
+    },
+    tokenizer(src) {
+        // The closing delimiter must end its line, and the formula can't contain its own closing delimiter,
+        // so "$$a$$ and $$b$$" is not read as one big formula (the inline extension handles that case).
+        const match = src.match(/^ {0,3}(?:\$\$((?:(?!\$\$)[\s\S])+?)\$\$|\\\[((?:(?!\\\])[\s\S])+?)\\\])[ \t]*(?:\n|$)/);
+        if (match) {
+            return {type: 'mathBlock', raw: match[0], text: (match[1] ?? match[2]).trim(), displayMode: true};
+        }
+    },
+    // Same KaTeX rendering (and error handling) as the inline extension
+    renderer: mathExtension.renderer
+};
+
 function configureMarked() {
     if (typeof marked !== 'undefined') {
         marked.use({
-            extensions: [mathExtension],
+            extensions: [mathBlockExtension, mathExtension],
             renderer: {
                 // Replaces marked's default code-block output with highlight.js. Current marked passes renderer
                 // methods a token object; `lang` is the fence's whole info string.
